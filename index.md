@@ -5,12 +5,13 @@ Chuck Stietzel
 
 
 ## Synopsis
-People are integrating technology into their lives in new ways.  At the forefront is the Quantified Self Movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. Most device applications try to identify the type of activity one is performing (e.g. Walking), the quantity of it (e.g. 200 steps), and/or monitoring certain body responses (e.g. heart rate).  This study attempts to determine how well one is performing a designated activity. Data collected from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants is used. Each was asked to perform a barbell lift once correctly and then five different ways incorrectly.
+People are integrating technology into their lives in new ways.  At the forefront is the Quantified Self Movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. Most device applications try to identify the type of activity one is performing (e.g. Walking), the quantity of it (e.g. 200 steps), and/or monitoring certain body responses (e.g. heart rate).  This study attempts to determine how well one is performing a designated activity. Data collected from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants is used. Each was asked to perform a dumbbell lift once correctly and then five different ways incorrectly.
 
 A three classification models were investigated to correctly identify how an exercise was being performed (eClass).  A partitioning scheme based on the eClass was performed that allocated 75% of the data for model training and 25% for model selection.  A Random Forest model using 31 predictors was selected as the final model and achieved an out-of-sample classification accuracy of 99.25% on the validation set.
 
-### Loading The Data Set
-A number of columns from the original data set were eliminated.  The row index user name, time stamps and window information were discarded.  These columns are not useful in the context of this study.  A prediction of valid exercise technique will be attained from the instantaneous sensor readings.  The activity classifications were loaded in as factors with level [ABCDE].
+## Preparing the Data
+### Loading the Data Set
+A number of columns from the original data set were eliminated.  The row index user name, time stamps and window information were discarded.  These columns are not useful in the context of this study.  A prediction of valid exercise technique will be attained from the instantaneous sensor readings.  The activity classifications were loaded in as factors with levels [ABCDE].
 
 Many columns had a large percentage of missing data (divide by zero values were also converted to NA).  Any column that had less than 90% valid measurements was discarded.  Of the remaining 52 variables that passed this threshold, each were 100% populated.
 
@@ -186,13 +187,7 @@ getexdata <- function (datafile) {
 }
 
 exdata <- getexdata("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
-```
 
-```
-## Warning: Missing column names filled in: 'X1' [1]
-```
-
-```r
 dim(exdata)
 ```
 
@@ -200,8 +195,8 @@ dim(exdata)
 ## [1] 19622    53
 ```
 
-## Feature Selection
-The final data set has 52 predictors despite ignoring nearly 2/3 of the original predictors due to lack of data. The correlation of the remaining predictors was evaluated.  Many exhibited a high degree of correlation.  In an effort to further reduce the dimensionality of the data, any variables that exhibited correlations of 0.75 ore more were removed from the final predictor set. This cutoff eliminated 21 predictors leaving 31 for model training.
+### Feature Selection
+The final data set has 52 predictors despite ignoring nearly 2/3 of the original predictors due to lack of data. The correlation of the remaining predictors was evaluated.  Many exhibited a high degree of correlation.  In an effort to further reduce the dimensionality of the data, any variables that exhibited correlations of 0.75 or more were removed from the final predictor set. This cutoff eliminated 21 predictors leaving 31 for model training.
 
 ```r
 rm.pred <- findCorrelation(cor(exdata[,1:52]), cutoff=.75)
@@ -212,7 +207,7 @@ length(rm.pred)
 ## [1] 21
 ```
 
-## Training and Valiation Sets
+### Training and Valiation Sets
 With nearly 20,000 observations available, a training set using 75% of the observations provides ample data for estimating the parameters of the various models. The remaining 25% was used as the validation set for out of sample testing. The model with the highest accuracy on the validation set will be selected as the final model.
 
 
@@ -227,7 +222,8 @@ dim(extrain)
 ## [1] 14718    32
 ```
 
-## Model Tuning and Selection 
+## Model Selection 
+### Tuning & Cross Validation
 Three different model types were tested for this analysis: Linear Discriminant, Boosted Tree, and Random Forest. The *caret* package's *train* function was used to tune each model with default tuning parameters. The optimal parameters for each model were determined by optimizing for classification accuracy using 10-fold cross validation. 
 
 
@@ -248,7 +244,7 @@ stopCluster(cluster)
 registerDoSEQ()
 ```
 
-## Model Results and Selection
+## Results and Conclusion
 
 
 ```r

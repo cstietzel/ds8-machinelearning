@@ -126,11 +126,14 @@ $(document).ready(function () {
 
 <div id="synopsis" class="section level2">
 <h2>Synopsis</h2>
-<p>People are integrating technology into their lives in new ways. At the forefront is the Quantified Self Movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. Most device applications try to identify the type of activity one is performing (e.g. Walking), the quantity of it (e.g. 200 steps), and/or monitoring certain body responses (e.g. heart rate). This study attempts to determine how well one is performing a designated activity. Data collected from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants is used. Each was asked to perform a barbell lift once correctly and then five different ways incorrectly.</p>
+<p>People are integrating technology into their lives in new ways. At the forefront is the Quantified Self Movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. Most device applications try to identify the type of activity one is performing (e.g. Walking), the quantity of it (e.g. 200 steps), and/or monitoring certain body responses (e.g. heart rate). This study attempts to determine how well one is performing a designated activity. Data collected from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants is used. Each was asked to perform a dumbbell lift once correctly and then five different ways incorrectly.</p>
 <p>A three classification models were investigated to correctly identify how an exercise was being performed (eClass). A partitioning scheme based on the eClass was performed that allocated 75% of the data for model training and 25% for model selection. A Random Forest model using 31 predictors was selected as the final model and achieved an out-of-sample classification accuracy of 99.25% on the validation set.</p>
+</div>
+<div id="preparing-the-data" class="section level2">
+<h2>Preparing the Data</h2>
 <div id="loading-the-data-set" class="section level3">
-<h3>Loading The Data Set</h3>
-<p>A number of columns from the original data set were eliminated. The row index user name, time stamps and window information were discarded. These columns are not useful in the context of this study. A prediction of valid exercise technique will be attained from the instantaneous sensor readings. The activity classifications were loaded in as factors with level [ABCDE].</p>
+<h3>Loading the Data Set</h3>
+<p>A number of columns from the original data set were eliminated. The row index user name, time stamps and window information were discarded. These columns are not useful in the context of this study. A prediction of valid exercise technique will be attained from the instantaneous sensor readings. The activity classifications were loaded in as factors with levels [ABCDE].</p>
 <p>Many columns had a large percentage of missing data (divide by zero values were also converted to NA). Any column that had less than 90% valid measurements was discarded. Of the remaining 52 variables that passed this threshold, each were 100% populated.</p>
 <pre class="r"><code>getexdata &lt;- function (datafile) {
   exdata_raw &lt;- read_csv(datafile, na = c(&quot;NA&quot;, &quot;#DIV/0!&quot;), col_types = 
@@ -301,21 +304,20 @@ $(document).ready(function () {
   exdata_raw[,poppct &gt; 0.90]
 }
 
-exdata &lt;- getexdata(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;)</code></pre>
-<pre><code>## Warning: Missing column names filled in: 'X1' [1]</code></pre>
-<pre class="r"><code>dim(exdata)</code></pre>
+exdata &lt;- getexdata(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;)
+
+dim(exdata)</code></pre>
 <pre><code>## [1] 19622    53</code></pre>
 </div>
-</div>
-<div id="feature-selection" class="section level2">
-<h2>Feature Selection</h2>
-<p>The final data set has 52 predictors despite ignoring nearly 2/3 of the original predictors due to lack of data. The correlation of the remaining predictors was evaluated. Many exhibited a high degree of correlation. In an effort to further reduce the dimensionality of the data, any variables that exhibited correlations of 0.75 ore more were removed from the final predictor set. This cutoff eliminated 21 predictors leaving 31 for model training.</p>
+<div id="feature-selection" class="section level3">
+<h3>Feature Selection</h3>
+<p>The final data set has 52 predictors despite ignoring nearly 2/3 of the original predictors due to lack of data. The correlation of the remaining predictors was evaluated. Many exhibited a high degree of correlation. In an effort to further reduce the dimensionality of the data, any variables that exhibited correlations of 0.75 or more were removed from the final predictor set. This cutoff eliminated 21 predictors leaving 31 for model training.</p>
 <pre class="r"><code>rm.pred &lt;- findCorrelation(cor(exdata[,1:52]), cutoff=.75)
 length(rm.pred)</code></pre>
 <pre><code>## [1] 21</code></pre>
 </div>
-<div id="training-and-valiation-sets" class="section level2">
-<h2>Training and Valiation Sets</h2>
+<div id="training-and-valiation-sets" class="section level3">
+<h3>Training and Valiation Sets</h3>
 <p>With nearly 20,000 observations available, a training set using 75% of the observations provides ample data for estimating the parameters of the various models. The remaining 25% was used as the validation set for out of sample testing. The model with the highest accuracy on the validation set will be selected as the final model.</p>
 <pre class="r"><code>set.seed(1234)
 inTrain &lt;- createDataPartition(y=exdata$classe, p=0.75, list=FALSE)
@@ -323,8 +325,11 @@ extrain &lt;- exdata[inTrain, -rm.pred]; extest &lt;- exdata[-inTrain, -rm.pred]
 dim(extrain)</code></pre>
 <pre><code>## [1] 14718    32</code></pre>
 </div>
-<div id="model-tuning-and-selection" class="section level2">
-<h2>Model Tuning and Selection</h2>
+</div>
+<div id="model-selection" class="section level2">
+<h2>Model Selection</h2>
+<div id="tuning-cross-validation" class="section level3">
+<h3>Tuning &amp; Cross Validation</h3>
 <p>Three different model types were tested for this analysis: Linear Discriminant, Boosted Tree, and Random Forest. The <em>caret</em> package’s <em>train</em> function was used to tune each model with default tuning parameters. The optimal parameters for each model were determined by optimizing for classification accuracy using 10-fold cross validation.</p>
 <pre class="r"><code>fitControl &lt;- trainControl(method = &quot;cv&quot;, number = 10, allowParallel = TRUE)
 cluster &lt;- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
@@ -341,8 +346,9 @@ rf.fit &lt;- train(classe ~ ., method=&quot;rf&quot;, data=extrain, trControl = 
 stopCluster(cluster)
 registerDoSEQ()</code></pre>
 </div>
-<div id="model-results-and-selection" class="section level2">
-<h2>Model Results and Selection</h2>
+</div>
+<div id="results-and-conclusion" class="section level2">
+<h2>Results and Conclusion</h2>
 <pre class="r"><code>mdlstats &lt;- summary(resamples(list(lda=lda.fit,gbm=gbm.fit, rf=rf.fit)))
 
 lda.conf &lt;- confusionMatrix(extest$classe, predict(lda.fit, extest))
