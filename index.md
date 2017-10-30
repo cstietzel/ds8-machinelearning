@@ -1,20 +1,8 @@
----
-title: "Exercise Analysis"
-author: "Chuck Stietzel"
-date: "10/30/2017"
-output: 
-  html_document: 
-    keep_md: yes
----
+# Exercise Analysis
+Chuck Stietzel  
+10/30/2017  
 
-```{r setup, include=FALSE}
-library(knitr)
-library(kableExtra)
-library(tidyverse)
-library(caret)
-library(doParallel)
-opts_chunk$set(echo = TRUE)
-```
+
 
 ## Synopsis
 People are integrating technology into their lives in new ways.  At the forefront is the Quantified Self Movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. Most device applications try to identify the type of activity one is performing (e.g. Walking), the quantity of it (e.g. 200 steps), and/or monitoring certain body responses (e.g. heart rate).  This study attempts to determine how well one is performing a designated activity. Data collected from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants is used. Each was asked to perform a barbell lift once correctly and then five different ways incorrectly.
@@ -26,7 +14,8 @@ A number of columns from the original data set were eliminated.  The row index u
 
 Many columns had a large percentage of missing data (divide by zero values were also converted to NA).  Any column that had less than 90% valid measurements was discarded.  Of the remaining 52 variables that passed this threshold, each were 100% populated.
 
-```{r dataload, cache=TRUE }
+
+```r
 getexdata <- function (datafile) {
   exdata_raw <- read_csv(datafile, na = c("NA", "#DIV/0!"), col_types = 
                          cols(
@@ -197,31 +186,52 @@ getexdata <- function (datafile) {
 }
 
 exdata <- getexdata("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+```
 
+```
+## Warning: Missing column names filled in: 'X1' [1]
+```
+
+```r
 dim(exdata)
+```
+
+```
+## [1] 19622    53
 ```
 
 ## Feature Selection
 The final data set has 52 predictors despite ignoring nearly 2/3 of the original predictors due to lack of data. The correlation of the remaining predictors was evaluated.  Many exhibited a high degree of correlation.  In an effort to further reduce the dimensionality of the data, any variables that exhibited correlations of 0.75 ore more were removed from the final predictor set. This cutoff eliminated 21 predictors leaving 31 for model training.
-```{r featurereduction}
+
+```r
 rm.pred <- findCorrelation(cor(exdata[,1:52]), cutoff=.75)
 length(rm.pred)
+```
+
+```
+## [1] 21
 ```
 
 ## Training and Valiation Sets
 With nearly 20,000 observations available, a training set using 75% of the observations provides ample data for estimating the parameters of the various models. The remaining 25% was used as the validation set for out of sample testing. The model with the highest accuracy on the validation set will be selected as the final model.
 
-```{r partitioning}
+
+```r
 set.seed(1234)
 inTrain <- createDataPartition(y=exdata$classe, p=0.75, list=FALSE)
 extrain <- exdata[inTrain, -rm.pred]; extest <- exdata[-inTrain, -rm.pred]
 dim(extrain)
 ```
 
+```
+## [1] 14718    32
+```
+
 ## Model Tuning and Selection 
 Three different model types were tested for this analysis: Linear Discriminant, Boosted Tree, and Random Forest. The *caret* package's *train* function was used to tune each model with default tuning parameters. The optimal parameters for each model were determined by optimizing for classification accuracy using 10-fold cross validation. 
 
-```{r model_training, cache=TRUE}
+
+```r
 fitControl <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
 cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
 registerDoParallel(cluster)
@@ -240,7 +250,8 @@ registerDoSEQ()
 
 ## Model Results and Selection
 
-```{r model_compare}
+
+```r
 mdlstats <- summary(resamples(list(lda=lda.fit,gbm=gbm.fit, rf=rf.fit)))
 
 lda.conf <- confusionMatrix(extest$classe, predict(lda.fit, extest))
@@ -256,5 +267,45 @@ kable(mdlcomp, format = "html", digits = rep(4, 4),
     add_header_above(c("Model" = 1, "Test Set" = 1, "Training Set Accuracy" = 3)) %>%
   column_spec(1:5, width = "1.0in")
 ```
+
+<table class="table table-bordered" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:center; border-bottom:hidden; padding-bottom:0; padding-left:3px;padding-right:3px;" colspan="1"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">Model</div></th>
+<th style="text-align:center; border-bottom:hidden; padding-bottom:0; padding-left:3px;padding-right:3px;" colspan="1"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">Test Set</div></th>
+<th style="text-align:center; border-bottom:hidden; padding-bottom:0; padding-left:3px;padding-right:3px;" colspan="3"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">Training Set Accuracy</div></th>
+</tr>
+<tr>
+<th style="text-align:left;">   </th>
+   <th style="text-align:right;"> Accuracy </th>
+   <th style="text-align:right;"> Min </th>
+   <th style="text-align:right;"> Median </th>
+   <th style="text-align:right;"> Max </th>
+  </tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;width: 1.0in; "> lda </td>
+   <td style="text-align:right;width: 1.0in; "> 0.5901 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.5693 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.5838 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.5883 </td>
+  </tr>
+<tr>
+<td style="text-align:left;width: 1.0in; "> gbm </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9511 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9368 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9443 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9531 </td>
+  </tr>
+<tr>
+<td style="text-align:left;width: 1.0in; "> rf </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9925 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9891 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9912 </td>
+   <td style="text-align:right;width: 1.0in; "> 0.9939 </td>
+  </tr>
+</tbody>
+</table>
 
 The table above shows a summary of performance accuracy on the in-sample model training and on the held-out validation/test set.  The min, max and median classification accuracy statistics are reported for the 10-fold re-samples. The linear discriminant model performed very poorly both in and out-of-sample; not achieving 60% accuracy.  Boosted tree did far better by recording an accuracy of 95% on the held-out test set. However, in-sample results were as low as 92%. The random forest model achieved better than 99% accuracy on both in and out-of-sample tests.  Based on these accuracy results, the random forest model constructed would be able to reasonably predict the eClass of the dumbbell lift. 
